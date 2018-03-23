@@ -38,6 +38,7 @@ final class Pact {
             'DB_PASSWORD',
         ]);
 
+        // 调试模式。
         define('WP_DEBUG', $_ENV['WP_DEBUG'] ?? false);
 
         $protocol = self::isHttps() ? 'https' : 'http';
@@ -54,18 +55,19 @@ final class Pact {
         define('DB_USER', $_ENV['DB_USER']);
         define('DB_PASSWORD', $_ENV['DB_PASSWORD']);
         define('DB_CHARSET', $_ENV['DB_CHARSET'] ?? 'utf8');
-        define('DB_COLLATE', '');
+        define('DB_COLLATE', $_ENV['DB_COLLATE'] ?? '');
         $GLOBALS['table_prefix'] = $_ENV['DB_PREFIX'] ?? 'wp_';
 
+        // 钥。
+        isset($_ENV['AUTH_KEY']) and define('AUTH_KEY', $_ENV['AUTH_KEY']);
+        isset($_ENV['SECURE_AUTH_KEY']) and define('SECURE_AUTH_KEY', $_ENV['SECURE_AUTH_KEY']);
+        isset($_ENV['LOGGED_IN_KEY']) and define('LOGGED_IN_KEY', $_ENV['LOGGED_IN_KEY']);
+        isset($_ENV['NONCE_KEY']) and define('NONCE_KEY', $_ENV['NONCE_KEY']);
         // 盐。
-        define('AUTH_KEY', $_ENV['AUTH_KEY']);
-        define('SECURE_AUTH_KEY', $_ENV['SECURE_AUTH_KEY']);
-        define('LOGGED_IN_KEY', $_ENV['LOGGED_IN_KEY']);
-        define('NONCE_KEY', $_ENV['NONCE_KEY']);
-        define('AUTH_SALT', $_ENV['AUTH_SALT']);
-        define('SECURE_AUTH_SALT', $_ENV['SECURE_AUTH_SALT']);
-        define('LOGGED_IN_SALT', $_ENV['LOGGED_IN_SALT']);
-        define('NONCE_SALT', $_ENV['NONCE_SALT']);
+        isset($_ENV['AUTH_SALT']) and define('AUTH_SALT', $_ENV['AUTH_SALT']);
+        isset($_ENV['SECURE_AUTH_SALT']) and define('SECURE_AUTH_SALT', $_ENV['SECURE_AUTH_SALT']);
+        isset($_ENV['LOGGED_IN_SALT']) and define('LOGGED_IN_SALT', $_ENV['LOGGED_IN_SALT']);
+        isset($_ENV['NONCE_SALT']) and define('NONCE_SALT', $_ENV['NONCE_SALT']);
 
         defined('ABSPATH') or define('ABSPATH', $this->pactPath.DIRECTORY_SEPARATOR);
     }
