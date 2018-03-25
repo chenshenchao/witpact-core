@@ -8,28 +8,21 @@ use Dotenv\Dotenv;
  * 修改了 WordPress 的目录结构。
  */
 final class Pact {
-    private $publicPath;
-    private $pactPath;
-    private $rootPath;
+    private $all;
     private $env;
+    private $core;
 
     /**
      * 初始化目录信息。
      * 
-     * @param string $publicPath: 服务器开放根路径。
+     * @param string $projectPath: 服务器项目路径。
      */
-    public function __construct($publicPath) {
-        $this->publicPath = $publicPath;
-        $this->rootPath = dirname($publicPath);
-        $this->pactPath = $publicPath.DIRECTORY_SEPARATOR.'pacts';
-        $this->env = new Dotenv($this->rootPath);
-    }
+    public function __construct($projectPath) {
+        $this->all = [];
+        $this->env = new Dotenv($projectPath);
+        $this->core = new Core($projectPath);
 
-    /**
-     * 公约签订，使结构确定。
-     * 
-     */
-    public function sign() {
+        // 初始化开始。
         $this->env->load();
         $this->env->required([
             'DB_HOST',
@@ -37,47 +30,27 @@ final class Pact {
             'DB_USER',
             'DB_PASSWORD',
         ]);
-
-        // 调试模式。
-        define('WP_DEBUG', $_ENV['WP_DEBUG'] ?? false);
-
-        $protocol = self::isHttps() ? 'https' : 'http';
-        $domain = $_ENV['WP_DOMAIN'] ?? $_SERVER['HTTP_HOST'];
-        // 定位符。
-        define('WP_HOME', $protocol.'://'.$domain);
-        define('WP_SITEURL', WP_HOME.'/pacts');
-        define('WP_CONTENT_URL', WP_HOME);
-        define('WP_CONTENT_DIR', $this->publicPath);
-
-        // 数据库。
-        define('DB_HOST', $_ENV['DB_HOST']);
-        define('DB_NAME', $_ENV['DB_NAME']);
-        define('DB_USER', $_ENV['DB_USER']);
-        define('DB_PASSWORD', $_ENV['DB_PASSWORD']);
-        define('DB_CHARSET', $_ENV['DB_CHARSET'] ?? 'utf8');
-        define('DB_COLLATE', $_ENV['DB_COLLATE'] ?? '');
-        $GLOBALS['table_prefix'] = $_ENV['DB_PREFIX'] ?? 'wp_';
-
-        // 钥。
-        isset($_ENV['AUTH_KEY']) and define('AUTH_KEY', $_ENV['AUTH_KEY']);
-        isset($_ENV['SECURE_AUTH_KEY']) and define('SECURE_AUTH_KEY', $_ENV['SECURE_AUTH_KEY']);
-        isset($_ENV['LOGGED_IN_KEY']) and define('LOGGED_IN_KEY', $_ENV['LOGGED_IN_KEY']);
-        isset($_ENV['NONCE_KEY']) and define('NONCE_KEY', $_ENV['NONCE_KEY']);
-        // 盐。
-        isset($_ENV['AUTH_SALT']) and define('AUTH_SALT', $_ENV['AUTH_SALT']);
-        isset($_ENV['SECURE_AUTH_SALT']) and define('SECURE_AUTH_SALT', $_ENV['SECURE_AUTH_SALT']);
-        isset($_ENV['LOGGED_IN_SALT']) and define('LOGGED_IN_SALT', $_ENV['LOGGED_IN_SALT']);
-        isset($_ENV['NONCE_SALT']) and define('NONCE_SALT', $_ENV['NONCE_SALT']);
-
-        defined('ABSPATH') or define('ABSPATH', $this->pactPath.DIRECTORY_SEPARATOR);
+        $this->core->initialize();
+        $this->all['at'] = [$this->core, 'at'];
     }
 
     /**
-     * 判断是否是 HTTPS 。
+     * 调用器。
+     * 
+     * @param string $name: 调用的方法名。
+     * @param string $arguments: 参数数组。
+     * @return mixed: 返回的结构。
+     */
+    public function __call($name, $arguments) {
+        $invoker = $this->all[$name];
+        return call_user_func_array($invoker, $arguments);
+    }
+
+    /**
+     * 签订。
      * 
      */
-    public static function isHttps() {
-        return (isset($_SERVER['HTTPS']) and 'on' == $_SERVER['HTTPS'])
-            or (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and 'https' == $_SERVER['HTTP_X_FORWARDED_PROTO']);
+    public function sign($name, $invoker) {
+        $this->all[$name] = $invoker;
     }
 }
